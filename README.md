@@ -19,12 +19,12 @@ The application uses **Retrieval-Augmented Generation (RAG)** to retrieve releva
 ## Technologies Used
 
 * Python
-* LangChain
 * Streamlit
-* Ollama
-* FAISS / ChromaDB
-* Hugging Face Embeddings
+* LangChain
 * PyPDF
+* all-MiniLM-L6-v2 Embedding Model
+* ChromaDB
+* Ollama(phi3:latest)
 * RAG (Retrieval-Augmented Generation)
 
 ## How It Works
@@ -71,19 +71,31 @@ Install the required Python packages:
 pip install -r requirements.txt
 ```
 
-## Ollama Setup
+### Ollama Setup
 
-This project can use Ollama to run the language model locally without requiring an API key.
+This project uses Ollama to run the language model locally without requiring an API key.
 
-Install Ollama and make sure the required model is available on your system.
+The application uses:
 
-For example:
+* **Ollama**
+* **Model:** `phi3:latest`
+* **Temperature:** `0`
+
+Make sure Ollama is installed and running on your computer.
+
+Pull the required model:
 
 ```bash
-ollama pull llama3
+ollama pull phi3:latest
 ```
 
-Make sure Ollama is running before starting the application.
+You can verify that the model is installed with:
+
+```bash
+ollama list
+```
+
+Make sure `phi3:latest` appears in the list before starting the application.
 
 ## Run the Application
 
