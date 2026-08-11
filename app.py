@@ -1,79 +1,205 @@
-import os
+import tempfile
+
+import streamlit as st
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 
 
-# Path to the PDF
-pdf_path = "sample.pdf"
+# --------------------------------------------------
+# Streamlit Configuration
+# --------------------------------------------------
 
-# Load the PDF
-loader = PyPDFLoader(pdf_path)
-documents = loader.load()
-
-print(f"PDF loaded successfully! Total pages: {len(documents)}")
-
-# Split the PDF into smaller chunks
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=50
+st.set_page_config(
+    page_title="PDF Chatbot - RAG",
+    page_icon="🤖",
+    layout="wide"
 )
 
-chunks = text_splitter.split_documents(documents)
+st.title("🤖 PDF Chatbot using RAG")
 
-print(f"Total chunks created: {len(chunks)}")
-
-# Create HuggingFace Embeddings
-embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+st.write(
+    "Upload a PDF and ask questions about its content "
+    "using Retrieval-Augmented Generation (RAG)."
 )
 
-print("Embedding model loaded successfully!")
+st.divider()
 
-# Create Chroma Vector Database
-vector_db = Chroma.from_documents(
-    documents=chunks,
-    embedding=embedding_model
+
+# --------------------------------------------------
+# Upload PDF
+# --------------------------------------------------
+
+uploaded_file = st.file_uploader(
+    "Upload your PDF",
+    type=["pdf"]
 )
 
-print("Vector Database created successfully!")
 
-# Create Retriever
-retriever = vectordb.as_retriever(
-    search_kwargs={"k": 2}
+# --------------------------------------------------
+# Process PDF
+# --------------------------------------------------
+
+if uploaded_file is not None:
+
+    # Save uploaded PDF temporarily
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf"
+    ) as temp_file:
+
+        temp_file.write(uploaded_file.getbuffer())
+        pdf_path = temp_file.name
+
+    st.success(
+        f"PDF uploaded: {uploaded_file.name}"
+    )
+
+
+    # --------------------------------------------------
+    # Load PDF
+    # --------------------------------------------------
+
+    with st.spinner("Loading PDF..."):
+
+        loader = PyPDFLoader(pdf_path)
+        documents = loader.load()
+
+    st.info(
+        f"PDF loaded successfully! Total pages: {len(documents)}"
+    )
+
+
+    # --------------------------------------------------
+    # Split PDF into chunks
+    # --------------------------------------------------
+
+    with st.spinner("Splitting PDF into chunks..."):
+
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=150
+        )
+
+        chunks = text_splitter.split_documents(documents)
+
+    st.info(
+        f"Total chunks created: {len(chunks)}"
+    )
+
+
+    # --------------------------------------------------
+    # Create HuggingFace Embeddings
+    # --------------------------------------------------
+
+    with st.spinner("Loading embedding model..."):
+
+        embedding_model = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
+
+    st.success(
+        "Embedding model loaded successfully!"
+    )
+
+
+    # --------------------------------------------------
+    # Create Chroma Vector Database
+    # --------------------------------------------------
+
+    with st.spinner("Creating vector database..."):
+
+        vector_db = Chroma.from_documents(
+            documents=chunks,
+            embedding=embedding_model
+        )
+
+    st.success(
+        "Chroma vector database created successfully!"
+    )
+
+
+    # --------------------------------------------------
+    # Create Retriever using MMR
+    # --------------------------------------------------
+
+    retriever = vector_db.as_retriever(
+        search_type="mmr",
+        search_kwargs={
+            "k": 5,
+            "fetch_k": 7
+        }
+    )
+
+
+    # --------------------------------------------------
+    # Initialize Ollama
+    # --------------------------------------------------
+
+    try:
+
+        llm = ChatOllama(
+            model="phi3:latest",
+            temperature=0
+        )
+
+    except Exception as e:
+
+        st.error(
+            "Could not initialize Ollama. "
+            "Make sure Ollama is running and phi3:latest is installed."
+        )
+
+        st.exception(e)
+
+        st.stop()
+
+#```python
+# --------------------------------------------------
+# Ask Question
+# --------------------------------------------------
+
+question = st.text_input(
+    "Ask a question about your PDF:"
 )
 
-print("Retriever created successfully!")
+if question:
 
-# Load Gemini API Key
-os.environ["GOOGLE_API_KEY"] = "YOUR_GEMINI_API_KEY"
+    with st.spinner(
+        "Searching the PDF and generating answer..."
+    ):
 
-# Initialize Gemini LLM
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0
-)
+        # Retrieve relevant chunks
+        docs = retriever.invoke(question)
 
-print("Gemini LLM initialized successfully!")
+        # Combine retrieved content
+        context = "\n\n".join(
+            doc.page_content
+            for doc in docs
+        )
 
-def ask_pdf(question):
-    # Retrieve the most relevant chunks
-    docs = retriever.invoke(question)
+        # Create prompt
+        prompt = f"""
+You are a document question-answering assistant.
 
-    # Combine the retrieved text into a single context
-    context = "\n\n".join([doc.page_content for doc in docs])
+Your task is to answer the user's question using ONLY the
+information explicitly present in the provided PDF context.
 
-    # Create the prompt
-    prompt = f"""
-You are a helpful AI assistant.
+STRICT RULES:
 
-Answer the user's question using ONLY the information provided in the context below.
-
-If the answer is not present in the context, simply reply:
-"I couldn't find that information in the PDF."
+1. Do not add information that is not present in the context.
+2. Do not make assumptions or guesses.
+3. Do not infer dates, colleges, tools, or experiences unless
+   they are explicitly stated in the context.
+4. If the question asks about PROJECTS, include only items
+   explicitly listed under the PROJECTS section.
+5. Do not treat certifications, achievements, skills, or
+   education as projects.
+6. If the answer cannot be found in the context, respond exactly:
+   "I couldn't find that information in the PDF."
 
 Context:
 {context}
@@ -84,14 +210,28 @@ Question:
 Answer:
 """
 
-    # Send the prompt to Gemini
-    response = llm.invoke(prompt)
+        # Generate answer
+        response = llm.invoke(prompt)
 
-    return response.content
+        # Display Answer
+        st.subheader("Answer")
 
-    question = input("Ask a question about the PDF: ")
+        st.write(response.content)
 
-answer = ask_pdf(question)
+        # Display Retrieved Chunks
+        with st.expander(
+            "View Retrieved PDF Content"
+        ):
 
-print("\nAnswer:")
-print(answer)
+            for i, doc in enumerate(docs):
+
+                st.markdown(
+                    f"**Retrieved Chunk {i + 1}**"
+                )
+
+                st.write(
+                    doc.page_content
+                )
+
+                st.divider()
+
