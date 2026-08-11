@@ -31,7 +31,6 @@ The application uses **Retrieval-Augmented Generation (RAG)** to retrieve releva
 
 The application follows this process:
 
-```text
 Upload PDF
     ↓
 Extract PDF Text
@@ -49,27 +48,21 @@ Retrieve Relevant Chunks
 Send Context + Question to LLM
     ↓
 Generate Answer
-```
 
 ## Installation
 
 Clone the repository:
 
-```bash
 git clone YOUR_GITHUB_REPOSITORY_URL
-```
 
 Move into the project folder:
 
-```bash
 cd PDF-Chatbot-RAG
-```
+
 
 Install the required Python packages:
 
-```bash
 pip install -r requirements.txt
-```
 
 ### Ollama Setup
 
@@ -85,15 +78,12 @@ Make sure Ollama is installed and running on your computer.
 
 Pull the required model:
 
-```bash
 ollama pull phi3:latest
-```
 
 You can verify that the model is installed with:
 
-```bash
+
 ollama list
-```
 
 Make sure `phi3:latest` appears in the list before starting the application.
 
@@ -101,9 +91,7 @@ Make sure `phi3:latest` appears in the list before starting the application.
 
 Start the Streamlit application:
 
-```bash
 python -m streamlit run app.py
-```
 
 The application will open in your browser.
 
@@ -119,14 +107,12 @@ After uploading a PDF, you can ask questions such as:
 
 ## Project Structure
 
-```text
 PDF-Chatbot-RAG/
 │
 ├── app.py
 ├── requirements.txt
 ├── README.md
 └── .gitignore
-```
 
 ## Future Improvements
 

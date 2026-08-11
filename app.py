@@ -8,10 +8,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_ollama import ChatOllama
 
-
-# --------------------------------------------------
 # Streamlit Configuration
-# --------------------------------------------------
 
 st.set_page_config(
     page_title="PDF Chatbot - RAG",
@@ -28,20 +25,13 @@ st.write(
 
 st.divider()
 
-
-# --------------------------------------------------
 # Upload PDF
-# --------------------------------------------------
-
 uploaded_file = st.file_uploader(
     "Upload your PDF",
     type=["pdf"]
 )
-
-
-# --------------------------------------------------
 # Process PDF
-# --------------------------------------------------
+
 
 if uploaded_file is not None:
 
@@ -58,10 +48,7 @@ if uploaded_file is not None:
         f"PDF uploaded: {uploaded_file.name}"
     )
 
-
-    # --------------------------------------------------
     # Load PDF
-    # --------------------------------------------------
 
     with st.spinner("Loading PDF..."):
 
@@ -72,10 +59,7 @@ if uploaded_file is not None:
         f"PDF loaded successfully! Total pages: {len(documents)}"
     )
 
-
-    # --------------------------------------------------
     # Split PDF into chunks
-    # --------------------------------------------------
 
     with st.spinner("Splitting PDF into chunks..."):
 
@@ -90,10 +74,7 @@ if uploaded_file is not None:
         f"Total chunks created: {len(chunks)}"
     )
 
-
-    # --------------------------------------------------
     # Create HuggingFace Embeddings
-    # --------------------------------------------------
 
     with st.spinner("Loading embedding model..."):
 
@@ -105,10 +86,8 @@ if uploaded_file is not None:
         "Embedding model loaded successfully!"
     )
 
-
-    # --------------------------------------------------
     # Create Chroma Vector Database
-    # --------------------------------------------------
+    
 
     with st.spinner("Creating vector database..."):
 
@@ -121,10 +100,7 @@ if uploaded_file is not None:
         "Chroma vector database created successfully!"
     )
 
-
-    # --------------------------------------------------
     # Create Retriever using MMR
-    # --------------------------------------------------
 
     retriever = vector_db.as_retriever(
         search_type="mmr",
@@ -133,11 +109,8 @@ if uploaded_file is not None:
             "fetch_k": 7
         }
     )
-
-
-    # --------------------------------------------------
+    
     # Initialize Ollama
-    # --------------------------------------------------
 
     try:
 
@@ -157,10 +130,7 @@ if uploaded_file is not None:
 
         st.stop()
 
-#```python
-# --------------------------------------------------
 # Ask Question
-# --------------------------------------------------
 
 question = st.text_input(
     "Ask a question about your PDF:"
